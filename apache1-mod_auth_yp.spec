@@ -4,7 +4,7 @@ Summary:	NIS/YP domain authentication module for Apache
 Summary(pl):	Modu³ Apache'a uwierzytelniaj±cy u¿ytkownika w domenie NIS/YP
 Name:		apache-mod_%{mod_name}
 Version:	1.0
-Release:	1
+Release:	2
 License:	GPL
 Group:		Networking/Daemons
 Source0:	http://nte.univ-lyon2.fr/~brogniar/articles/mod_%{mod_name}.c
@@ -33,7 +33,8 @@ install %{SOURCE0} .
 %build
 %{apxs} \
 	-c mod_%{mod_name}.c \
-	-o mod_%{mod_name}.so
+	-o mod_%{mod_name}.so \
+	-l nsl
 
 %install
 rm -rf $RPM_BUILD_ROOT
