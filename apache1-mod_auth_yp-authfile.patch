@@ -1,0 +1,15 @@
+--- mod_auth_yp.c	Thu Sep 26 15:26:05 2002
++++ mod_auth_yp.c.p	Sun Nov 23 00:25:45 2003
+@@ -53,10 +53,8 @@
+ 
+ static const char *set_auth_yp_slot(cmd_parms *cmd, void *offset, char *f, char *t)
+ {
+-if (t && strcmp(t, "standard"))
+-	return ap_pstrcat(cmd->pool, "Invalid auth file type: ", t, NULL);
+-
+-return ap_set_file_slot(cmd, offset, f);
++	*(char **) ((char *)offset + ((int) (long) cmd->info) ) = f;
++	return NULL;
+ }
+ 
+ static const command_rec auth_yp_cmds[] =
