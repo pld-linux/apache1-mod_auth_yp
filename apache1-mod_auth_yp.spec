@@ -1,19 +1,21 @@
 %define		mod_name	auth_yp
-%define 	apxs		/usr/sbin/apxs
+%define 	apxs		/usr/sbin/apxs1
 Summary:	NIS/YP domain authentication module for Apache
 Summary(pl):	Modu³ Apache'a uwierzytelniaj±cy u¿ytkownika w domenie NIS/YP
-Name:		apache-mod_%{mod_name}
+Name:		apache1-mod_%{mod_name}
 Version:	1.0
-Release:	2
+Release:	1
 License:	GPL
 Group:		Networking/Daemons
 Source0:	http://nte.univ-lyon2.fr/~brogniar/articles/mod_%{mod_name}.c
 Source1:	%{name}-htaccess
 Patch0:		%{name}-authfile.patch
 Patch1:		%{name}-shadow.patch
-BuildRequires:	apache(EAPI)-devel
-Prereq:		%{_sbindir}/apxs
-Requires:	apache(EAPI)
+BuildRequires:	%{apxs}
+BuildRequires:	apache1-devel
+Requires(post,preun):	%{apxs}
+Requires:	apache1
+Obsoletes:	apache-mod_%{mod_name} <= %{version}
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		_pkglibdir	%(%{apxs} -q LIBEXECDIR)
@@ -45,15 +47,15 @@ install %{SOURCE1} ./sample-htaccess
 
 %post
 %{apxs} -e -a -n %{mod_name} %{_pkglibdir}/mod_%{mod_name}.so 1>&2
-if [ -f /var/lock/subsys/httpd ]; then
-	/etc/rc.d/init.d/httpd restart 1>&2
+if [ -f /var/lock/subsys/apache ]; then
+	/etc/rc.d/init.d/apache restart 1>&2
 fi
 
 %preun
 if [ "$1" = "0" ]; then
 	%{apxs} -e -A -n %{mod_name} %{_pkglibdir}/mod_%{mod_name}.so 1>&2
-	if [ -f /var/lock/subsys/httpd ]; then
-		/etc/rc.d/init.d/httpd restart 1>&2
+	if [ -f /var/lock/subsys/apache ]; then
+		/etc/rc.d/init.d/apache restart 1>&2
 	fi
 fi
 
