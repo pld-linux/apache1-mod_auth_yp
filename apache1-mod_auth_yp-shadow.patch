@@ -1,0 +1,140 @@
+--- mod_auth_yp.c	Sun Nov 23 00:26:37 2003
++++ mod_auth_yp.c.sz	Sun Nov 23 00:24:18 2003
+@@ -34,6 +34,7 @@
+ typedef struct auth_yp_config_struct {
+     char *auth_yp_domain;
+     char *auth_yp_pwtable;
++    char *auth_yp_shtable;
+     char *auth_yp_grptable;
+     int auth_yp_authoritative;
+ 	int auth_yp;
+@@ -45,9 +46,10 @@
+     (auth_yp_config_rec *) ap_pcalloc(p, sizeof(auth_yp_config_rec));
+     sec->auth_yp_domain = NULL;
+     sec->auth_yp_pwtable = NULL;	/* just to illustrate the default really */
++    sec->auth_yp_shtable = NULL;
+     sec->auth_yp_grptable = NULL;	/* unless you have a broken HP cc */
+     sec->auth_yp_authoritative = 1;	/* keep the fortress secure by default */
+-	sec->auth_yp = NULL;
++    sec->auth_yp = 0;
+     return sec;
+ }
+ 
+@@ -64,7 +66,10 @@
+ 	 "NIS domain name"},
+ 	{"AuthYPUserTable", set_auth_yp_slot,
+ 	 (void *) XtOffsetOf(auth_yp_config_rec, auth_yp_pwtable), OR_AUTHCFG, TAKE1,
+-	 "NIS table containing user IDs and passwords"},
++	 "NIS table containing user IDs, user groups and passwords"},
++	{"AuthYPShadowTable", set_auth_yp_slot,
++	 (void *) XtOffsetOf(auth_yp_config_rec, auth_yp_shtable), OR_AUTHCFG, TAKE1,
++	 "NIS table containing usernames and passwords"},
+ 	{"AuthYPGroupTable", set_auth_yp_slot,
+ 	 (void *) XtOffsetOf(auth_yp_config_rec, auth_yp_grptable), OR_AUTHCFG, TAKE1,
+ 	 "NIS table containing group names and member user IDs"},
+@@ -99,29 +104,41 @@
+ 	}
+ }
+ 
+-static char *user_in_yp_group(request_rec *r, const char *group_to_check, char *auth_yp_grptable, char *auth_yp_domain)
++static char *user_in_yp_group(request_rec *r, const char *group_to_check, char *auth_yp_pwtable, char *auth_yp_grptable, char *auth_yp_domain)
+ {
+ char *user=r->connection->user;
+-char *domainname, *value, *groups;
+-char groupline[MAX_STRING_LEN], uname[MAX_STRING_LEN];
++char *domainname, *value, *groups, *usergroup;
++char groupline[MAX_STRING_LEN], userline[MAX_STRING_LEN], uname[MAX_STRING_LEN];
+ int err, valuelen, unameidx, colons;
++int gid, ugid;
++char *gididx, *ugididx;
+ 
+ domainname=get_yp_domain(r, auth_yp_domain);
+ if(!domainname)	return NULL;
+ 
+ if(!auth_yp_grptable)	auth_yp_grptable="group.byname";
++if(!auth_yp_pwtable)	auth_yp_pwtable="passwd.byname";
+ 
+ err=yp_match(domainname, auth_yp_grptable, group_to_check, strlen(group_to_check), &value, &valuelen);
+-if(err != 0)
+-	{
++if(err != 0) {
+ 	ap_log_rerror(APLOG_MARK, APLOG_ERR, r, "%s", yperr_string(err) );
+ 	return NULL;
+-	}
++}
+ 
+ strncpy(groupline, value, valuelen);
+ groupline[valuelen]=(char)NULL;
+-for(colons=3, groups=groupline; colons; groups++)
+-	if(*groups == ':')      colons--;
++
++for(colons=2, groups=groupline; colons; groups++)
++	if(*groups == ':') colons--;
++
++gididx = groups;
++while(isdigit((int)*groups)) {
++	groups++;
++}
++*groups = (char)NULL;
++gid = atoi(gididx);
++
++groups++;
+ 
+ while(isprint((int)*groups))
+ 	{
+@@ -137,10 +154,36 @@
+ 	if(!strcmp(user, uname))
+ 		{
+ 		/* printf("Found %s\n", argv[2]); */
+-		return group_to_check;
++		return (char *)group_to_check;
+ 		}
+ 	}
+ /* printf("Unable to find %s\n", argv[2]); */
++// return NULL;
++// je¶li nie ma w group.byname
++
++err=yp_match(domainname, auth_yp_pwtable, user, strlen(user), &value, &valuelen);
++if(err != 0)
++	{
++	ap_log_rerror(APLOG_MARK, APLOG_ERR, r, "%s", yperr_string(err) );
++	return NULL;
++	}
++strncpy(userline, value, valuelen);
++userline[valuelen]=(char)NULL;
++
++for(colons=3, usergroup=userline; colons; usergroup++)
++	if(*usergroup == ':')	colons--;
++
++ugididx = usergroup;
++
++while(isdigit((int)*usergroup)) {
++	usergroup++;
++}
++*usergroup = (char)NULL;
++ugid = atoi(ugididx);
++
++if (ugid == gid) {
++	return (char*) group_to_check;
++}
+ return NULL;
+ }
+ 
+@@ -202,7 +245,7 @@
+     /* If YP is not enabled - IanP */
+     if(!sec->auth_yp)	return DECLINED;
+ 
+-    if (!(real_pw = get_pw(r, c->user, sec->auth_yp_pwtable, sec->auth_yp_domain))) {
++    if (!(real_pw = get_pw(r, c->user, (sec->auth_yp_shtable ? sec->auth_yp_shtable : sec->auth_yp_pwtable) , sec->auth_yp_domain))) {
+ 	if (!(sec->auth_yp_authoritative))
+ 	    return DECLINED;
+ 	ap_log_rerror(APLOG_MARK, APLOG_NOERRNO|APLOG_ERR, r,
+@@ -271,7 +314,7 @@
+ 	    while (t[0]) {
+ 		w = ap_getword_conf(r->pool, &t); /* w=group name - IanP */
+ 		/* New Function - IanP */
+-        if(user_in_yp_group(r, w, sec->auth_yp_grptable, sec->auth_yp_domain))
++        if(user_in_yp_group(r, w, sec->auth_yp_pwtable, sec->auth_yp_grptable, sec->auth_yp_domain))
+ 			return OK;
+ 	    }
+ 	} else if (sec->auth_yp_authoritative) {
