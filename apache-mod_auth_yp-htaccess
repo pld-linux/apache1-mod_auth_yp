@@ -1,8 +1,0 @@
-AuthType Basic
-AuthName "Some AuthName"
-AuthYPDomain some.yp.domain
-AuthYPUserTable passwd.byname
-AuthYPShadowTable shadow.byname
-AuthYPGroupTable group.byname
-AuthYP On
-Require group wheel
