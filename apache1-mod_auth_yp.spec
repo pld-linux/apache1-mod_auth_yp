@@ -28,7 +28,7 @@ Apache module authenticating against a NIS/YP domain.
 Modu³ do Apache'a autoryzuj±cy w domenie NIS/YP.
 
 %prep
-%setup -q -T -c -n "mod_%{mod_name}-%{version}"
+%setup -qcT
 install %{SOURCE0} .
 %patch0
 %patch1
@@ -73,5 +73,5 @@ fi
 %files
 %defattr(644,root,root,755)
 %doc sample-htaccess
-%attr(640,root,root) %config(noreplace) %verify(not size mtime md5) %{_sysconfdir}/conf.d/*_mod_%{mod_name}.conf
+%attr(640,root,root) %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/conf.d/*_mod_%{mod_name}.conf
 %attr(755,root,root) %{_pkglibdir}/*
