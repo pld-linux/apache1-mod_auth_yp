@@ -1,7 +1,7 @@
 %define		mod_name	auth_yp
 %define 	apxs		/usr/sbin/apxs1
 Summary:	NIS/YP domain authentication module for Apache
-Summary(pl):	Modu≥ Apache'a uwierzytelniaj±cy uøytkownika w domenie NIS/YP
+Summary(pl.UTF-8):   Modu≈Ç Apache'a uwierzytelniajƒÖcy u≈ºytkownika w domenie NIS/YP
 Name:		apache1-mod_%{mod_name}
 Version:	1.0
 Release:	3
@@ -25,8 +25,8 @@ BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 %description
 Apache module authenticating against a NIS/YP domain.
 
-%description -l pl
-Modu≥ do Apache'a autoryzuj±cy w domenie NIS/YP.
+%description -l pl.UTF-8
+Modu≈Ç do Apache'a autoryzujƒÖcy w domenie NIS/YP.
 
 %prep
 %setup -qcT
