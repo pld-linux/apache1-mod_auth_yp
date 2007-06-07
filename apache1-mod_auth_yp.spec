@@ -11,7 +11,7 @@ Source0:	http://nte.univ-lyon2.fr/~brogniar/articles/mod_%{mod_name}.c
 Source1:	%{name}-htaccess
 Patch0:		%{name}-authfile.patch
 Patch1:		%{name}-shadow.patch
-BuildRequires:	%{apxs}
+BuildRequires:	apache1-apxs
 BuildRequires:	apache1-devel >= 1.3.33-2
 BuildRequires:	rpmbuild(macros) >= 1.268
 Requires(triggerpostun):	%{apxs}
